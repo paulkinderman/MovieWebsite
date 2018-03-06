@@ -6,7 +6,7 @@ class Movie(models.Model):
     movie_producer = models.CharField(max_length=50)
     movie_director = models.CharField(max_length=50)
     movie_synopsis = models.CharField(max_length=1000)
-
+    movie_picture = models.FileField()
     def __str__(self):
         return self.movie_title
 
