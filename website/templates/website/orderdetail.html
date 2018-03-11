@@ -1,0 +1,21 @@
+{% extends 'website/base.html' %}
+
+{% block body %}
+
+<div style="margin:auto;width:93%;">
+  <table class="table" id="ticketTable">
+    <thead>
+      <th>Movie</th><th>Show Time</th><th>Seat</th><th>Ticket Type</th><th>Ticket Price</th>
+    </thead>
+    <tbody>
+      {% for ticket in order.ticket_set.all %}
+      <tr id="{{ticket.row}}{{ticket.seat}}{{ticket.pk}}">
+        <td>{{ticket.showtime.movie.movie_title}}</td><td>{{ticket.showtime.time}}</td><td>{{ticket.row}}{{ticket.seat}}</td><td>{{ticket.type}}</td><td>{{ticket.price}}</td><td>
+      </tr>
+      {% endfor %}
+      <tr><td></td><td></td><td></td><td><strong>Total:</strong></td><td id="subtotal">{{order.order_price}}</td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

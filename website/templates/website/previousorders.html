@@ -1,0 +1,20 @@
+{% extends 'website/base.html' %}
+
+{% block body %}
+
+<div style="margin:auto;width:93%;">
+  <table class="table" id="orderTable">
+    <thead>
+      <th>Time Of Order</th><th>Order Price</th>
+    </thead>
+    <tbody>
+      {% for order in object_list.all %}
+      <tr id="{{order.pk}}">
+	<td>{{order.order_time}}</td><td>{{order.order_price}}</td><td><a href="{% url 'Ebooking:orderDetails' order.pk %}" onclick="setorderid(this)">View Details</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

@@ -1,14 +1,142 @@
 {% extends 'website/base.html' %}
 {% block body %}
+<div style="position:absolute; text-align:center; width:66%;left:16.5%">
+  <h1> {{movie.movie_title}} </h1>
+  <img src="{{ movie.movie_picture.url }}"><br>
+  {% for showtime in movie.showtime_set.all %}
+  <div id="{% if showtime.time.month < 10 %}0{% endif %}{{ showtime.time.month }} {% if showtime.time.day < 10 %}0{% endif %}{{ showtime.time.day }}, {{ showtime.time.year }}, {% if showtime.time.hour < 10 %}0{% endif %}{{ showtime.time.hour}}:{% if showtime.time.minute < 10 %}0{% endif %}{{ showtime.time.minute }}" class="showtimes" data-toggle="modal" data-target="#myModal">{{showtime.time}}<br></div>
+  {% endfor %}
+  <p> Producer: {{movie.movie_producer}} </p>
+  <p> Director: {{movie.movie_director}} </p>
+  <p> Actors: {% for  actor in movie.actor_set.all %}{{actor.actor_name}},{% endfor %}</p>
+  <p> Synopsis: {{ movie.movie_synopsis}}</p>
+</div>
 
-<h1> {{movie.movie_title}} </h1>
-<h3> {{movie.movie_producer}} </h3>
+<style>
+  .showtimes:hover {
+     background-color:gray;
+  }
+  .showtimes {
+     position: relative;
+     width: 17%;
+     left: 43%;
+     border-bottom: 1px dashed gray;
+  }
+  .unavailable {
+     background-color:gray;
+  }
+  .available {
+     background-color:green;
+  }
+  .student {
+     background-color:red;
+  }
+  .adult {
+     background-color:yellow;
+  }
+  .senior {
+     background-color:blue;
+  }
+  td {
+     text-align: center;
+  }
+</style>
 
-<ul>
-{% for actor in movie.actor_set.all %}
-<li>{{actor.actor_name}}</li>
-{% endfor %}
-</ul>
+<script>
+  var showtime;
+  $(".showtimes").click(function() {
+    showtime = $(this).attr("id");
+    $.ajax({
+      type: "GET",
+      url: "{% url 'Ebooking:getSeats'%}",
+      data: {'showtime': showtime, 'movie': '{{movie.movie_title}}'},
+      success: function(result) {
+         var result_html = "<table align='center' id='seatingChart'><tr>";
+         for (var seat in result){
+           if (parseInt(result[seat]['seat']) == 9 && parseInt(result[seat]['row']) == 9)
+              result_html = result_html + "<td width='50px' id='" + result[seat]['row'] + result[seat]['seat'] + "'>" + result[seat]['row'] + result[seat]['seat'] + "</td></tr>";
+           else if (parseInt(result[seat]['seat']) == 9)
+              result_html = result_html + "<td width='50px' id='" + result[seat]['row'] + result[seat]['seat'] + "'>" + result[seat]['row'] + result[seat]['seat'] + "</td></tr><tr>";
+           else
+              result_html = result_html + "<td width='50px' id='" + result[seat]['row'] + result[seat]['seat'] + "'>" + result[seat]['row'] + result[seat]['seat'] + "</td>";
+         } 
+         result_html += "</table>";
+         $("#modal_body").html(result_html);
+         for (var seat in result) {
+           var location = "" + result[seat]['row'] + result[seat]['seat'] + "";
+           var available = result[seat]['available'];
+           if (available) {
+              document.getElementById(location).classList.add("available");
+              $("#" + location).on('click', function() {
+                   if (this.classList.contains("available")){
+                     this.classList.remove("available");
+                     this.classList.add("student");
+                   }
+                   else if (this.classList.contains("student")){
+                     this.classList.remove("student");
+                     this.classList.add("adult");
+                   }
+                   else if (this.classList.contains("adult")){
+                     this.classList.remove("adult");
+                     this.classList.add("senior");
+                   }
+                   else if (this.classList.contains("senior")){
+                     this.classList.remove("senior");
+                     this.classList.add("available");
+                   }
+              });
+           }
+           else {
+              document.getElementById(location).classList.add("unavailable");
+           }
+         }
+      }
+    });
+  });
+  function addToCart() 
+  {
+     var table = document.getElementById("seatingChart");
+     var dict = [];
+     for (var i = 0, row; row = table.rows[i]; i++) {
+        for (var j = 0, col; col = row.cells[j]; j++) {
+           if (col.classList.contains("available") || col.classList.contains("unavailable"))
+              console.log("here");
+           else
+              dict.push({
+                 seatnumber: col.id, tickettype: col.classList[0],
+              });
+        }  
+     }
+     $.ajax({
+        type: "POST",
+        url: "{% url 'Ebooking:addToCart'%}",
+        data: {"tickets": JSON.stringify(dict), "showtime": showtime, "movie":"{{movie.movie_title}}",},
+        success: function(result) {
+          console.log(result);
+        }
+     });
+  }
+</script>
 
-<h4>{{ movie.movie_synopsis}}</h4>
+<!-- Modal -->
+<div class="modal fade" id="myModal" role="dialog">
+  <div class="modal-dialog">
+    
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Available Seats</h4>
+      </div>
+      <div class="modal-body" id="modal_body">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal" onclick="addToCart()">Add To Cart</button>
+	<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+    
+  </div>
+</div>
+
 {% endblock %}

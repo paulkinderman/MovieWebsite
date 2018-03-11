@@ -1,0 +1,36 @@
+{% extends 'website/base.html' %}
+
+{% block body %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-xs-12 col-sm-6 col-md-6">
+            <div class="well well-sm">
+                <div class="row">
+                    <div class="col-sm-6 col-md-4">
+                        <img src="http://placehold.it/380x500" alt="" class="img-rounded img-responsive" />
+                    </div>
+                    <div class="col-sm-6 col-md-8">
+		      <h4>{{user.username}}</h4>
+                        <p>
+                            <i class="glyphicon glyphicon-envelope"></i>{{user.email}}
+                            <br />
+                            <i class="glyphicon glyphicon-th-list"></i><a href="{% url 'Ebooking:previousOrders' %}">View Previous Orders</a>
+                            <br />
+                            <i class="glyphicon glyphicon-gift"></i>{{user.date_joined}}</p>
+                        <!-- Split button -->
+                        <div class="btn-group">
+			  <form action="{% url 'Ebooking:editProfile' %}">
+                            <button type="submit" class="btn btn-primary">
+                              Edit Profile
+			    </button>
+			  </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

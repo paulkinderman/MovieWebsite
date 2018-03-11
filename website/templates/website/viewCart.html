@@ -1,0 +1,49 @@
+{% extends 'website/base.html' %}
+
+{% block body %}
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<div style="margin:auto;width:93%;">
+  <table class="table" id="ticketTable">
+    <thead>
+      <th>Movie</th><th>Show Time</th><th>Seat</th><th>Ticket Type</th><th>Ticket Price</th>
+    </thead>
+    <tbody>
+      {% for ticket in shoppingcart.ticket_set.all %}
+      <tr id="{{ticket.row}}{{ticket.seat}}{{ticket.pk}}">
+	<td>{{ticket.showtime.movie.movie_title}}</td><td>{{ticket.showtime.time}}</td><td>{{ticket.row}}{{ticket.seat}}</td><td>{{ticket.type}}</td><td>{{ticket.price}}</td><td><button id="{{ticket.row}}{{ticket.seat}}{{ticket.pk}}" onclick="removeTicket(this)">Remove</button></td>
+      </tr>
+      {% endfor %}
+      <tr><td></td><td></td><td></td><td><strong>Subtotal:</strong></td><td id="subtotal">{{shoppingcart.subtotal}}</td><td></td></tr>
+      <tr><td></td><td></td><td></td><td><strong>Subtotal:</strong></td><td><button id="confirmOrder" onclick="confirmOrder()">Confirm Order</button></td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+<script>
+  function removeTicket(index)
+  {
+    row = document.getElementById(index.id).rowIndex;    
+    document.getElementById("ticketTable").deleteRow(row); 
+    $.ajax({
+        type: "POST",
+        url: "{% url 'Ebooking:removeTicket'%}",
+        data: {"id": index.id.substring(2),},
+        success: function(result) {
+          document.getElementById("subtotal").innerHTML = result
+        }
+    });
+  }
+  function confirmOrder()
+  {
+     $.ajax({
+        type: "POST",
+        url: "{% url 'Ebooking:confirmOrder' %}",
+        success: function(result) {
+           console.log(result);
+       }
+     });
+     $("#ticketTable tbody tr").remove();
+  }
+</script>
+{% endblock %}
