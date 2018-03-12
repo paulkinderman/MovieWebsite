@@ -80,4 +80,3 @@ class Ticket(models.Model):
     def __str__(self):
         return str(self.row) + str(self.seat) + ' - ' + self.showtime.movie.movie_title + ' - ' + str(self.showtime.time) + ' - ' + str(self.available)
 
-

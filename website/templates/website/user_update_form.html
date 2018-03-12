@@ -1,7 +1,7 @@
 {% extends 'website/base.html' %}
 
 {% block body %}
-<form action="{% url 'Ebooking:myProfile' %}" method="post">{% csrf_token %}
+<form action="{% url 'Ebooking:updateProfile' %}" method="post">{% csrf_token %}
     {{ form.as_p }}
     <input type="submit" value="Update" />
 </form>
