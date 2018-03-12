@@ -185,3 +185,10 @@ class EditProfile(generic.edit.UpdateView):
     
     def get_object(self):
         return User.objects.get(username=self.request.user.username)
+
+def updateProfile(request):
+    user = request.user
+    user.username = request.POST.get('username')
+    user.save()
+    request.user = user
+    return redirect(reverse('Ebooking:home'))

@@ -17,12 +17,7 @@ class Actor(models.Model):
     actor_name = models.CharField(max_length=50)
     
     def __str__(self):
-        return self.actor_name
-
-class Review(models.Model):
-    movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
-    review = models.CharField(max_length=100)
-        
+        return self.actor_name        
 
 class ShowTime(models.Model):
     time = models.DateTimeField()
@@ -86,9 +81,3 @@ class Ticket(models.Model):
         return str(self.row) + str(self.seat) + ' - ' + self.showtime.movie.movie_title + ' - ' + str(self.showtime.time) + ' - ' + str(self.available)
 
 
-class Discount(models.Model):
-    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, null=True)
-    discount_amount = models.DecimalField(default=0.00, max_digits=5, decimal_places=2)
-
-    def __str__(self):
-        return self.movie.movie_title + ' - ' + str(self.discount_amount)
