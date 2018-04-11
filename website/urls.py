@@ -21,4 +21,10 @@ urlpatterns = [
     path('orderDetails/<pk>/', views.OrderDetailsView.as_view(), name='orderDetails'),
     path('editProfile/', views.EditProfile.as_view(), name='editProfile'),
     path('updateProfile/', views.updateProfile, name='updateProfile'),
+    path('resetPasswordRequest/', views.ResetPasswordRequestView.as_view(), name='resetPasswordRequest'),
+    path('resetPasswordRequest/login/', views.login2, name='login2'),
+    path('resetPasswordConfirm/<slug:uidb64>-<token>/', views.PasswordResetConfirmView.as_view(), name='reset_password_confirm'),
+    path('resetPasswordConfirm/<slug:uidb64>-<token>/login/', views.login3, name='reset_password_confirm_login'),
+    path('checkEmail/', TemplateView.as_view(template_name='website/checkEmail.html'), name='checkEmail'),
+    path('activate/<slug:uidb64>-<token>/', views.activate, name='activate'),
 ]

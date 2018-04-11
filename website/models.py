@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 import decimal 
 from django.utils import timezone
 # Create your models here.
+
 class Movie(models.Model):
     movie_title = models.CharField(max_length=100)
     movie_producer = models.CharField(max_length=50)
@@ -79,4 +80,5 @@ class Ticket(models.Model):
     
     def __str__(self):
         return str(self.row) + str(self.seat) + ' - ' + self.showtime.movie.movie_title + ' - ' + str(self.showtime.time) + ' - ' + str(self.available)
+
 

@@ -1,3 +1,14 @@
+from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth import get_user_model
+from django.utils.encoding import force_bytes, force_text
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.template.loader import render_to_string
+from django.template import loader
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.contrib import messages
+from django.db.models.query_utils import Q
 from django.http import Http404
 from django.contrib.auth.models import User
 from django.views import generic
@@ -7,8 +18,10 @@ from django.contrib.auth import authenticate, login, logout
 from django.views.generic import View
 from django.template import loader
 from django.http import HttpResponse, JsonResponse
-from .forms import LogInForm, SignUpForm
+from django.core.mail import EmailMessage
+from .forms import LogInForm, SignUpForm, RequestPasswordResetForm, SetPasswordForm
 from .models import Movie, ShowTime, Ticket, ShoppingCart, Order
+from .tokens import account_activation_token
 from datetime import datetime
 from django.views.decorators.csrf import csrf_exempt # add this
 from django.shortcuts import get_object_or_404
@@ -61,14 +74,23 @@ class SignUpView(View):
             confirm_password = request.POST['confirm_password']
             if password == confirm_password:
                 user.set_password(password)
+                user.is_active=False
                 user.save()
                 shoppingcart = ShoppingCart(cart_owner=user)
                 shoppingcart.save()
-                user = authenticate(username=username, password=password)
-                if user is not None:
-                    if user.is_active:
-                        login(request, user)
-                        return redirect(reverse('Ebooking:home'))
+                mail_subject = 'Activate your Ebooking account.'
+                message = render_to_string('website/acc_active_email.html', {
+                        'user': user,
+                        'domain': 'Ebooking',
+                        'uid':urlsafe_base64_encode(force_bytes(user.pk)).decode(),
+                        'token':account_activation_token.make_token(user),
+                        })
+                to_email = form.cleaned_data.get('email')
+                email = EmailMessage(
+                    mail_subject, message, to=[to_email]
+                    )
+                email.send()
+                return redirect(reverse('Ebooking:checkEmail'))
         return render(request, self.template_name, {'form':form})
      
 def logoutFunc(request):
@@ -192,3 +214,148 @@ def updateProfile(request):
     user.save()
     request.user = user
     return redirect(reverse('Ebooking:home'))
+
+
+class ResetPasswordRequestView(generic.FormView):
+    template_name = "website/password_request_template.html" 
+    success_url = 'login'
+    form_class = RequestPasswordResetForm
+    
+    @staticmethod
+    def validate_email_address(email):
+        '''
+        This method here validates the if the input is an email address or not. Its return type is boolean, True if the input is a email address or False if its not.
+        '''
+        try:
+            validate_email(email)
+            return True
+        except ValidationError:
+            return False
+        
+    def post(self, request, *args, **kwargs):
+        '''
+        A normal post request which takes input from field "email_or_username" (in ResetPasswordRequestForm). 
+        '''
+        form = self.form_class(request.POST)
+        if form.is_valid():
+            data= form.cleaned_data["email_or_username"]
+            if self.validate_email_address(data) is True:                 #uses the method written above
+                '''
+                If the input is an valid email address, then the following code will lookup for users associated with that email address. If found then an email will be sent to the address, else an error
+                message will be printed on the screen.
+                '''
+                associated_users= User.objects.filter(Q(email=data)|Q(username=data))
+                if associated_users.exists():
+                    for user in associated_users:
+                        c = {
+                            'email': user.email,
+                            'domain': request.META['HTTP_HOST'],
+                            'site_name': 'Ebooking',
+                            'uid': urlsafe_base64_encode(force_bytes(user.pk)).decode(),
+                            'user': user,
+                            'token': default_token_generator.make_token(user),
+                            'protocol': 'http',
+                            }
+                        subject_template_name='website/password_reset_subject.txt' 
+                            # copied from django/contrib/admin/templates/registration/password_reset_subject.txt to templates directory
+                        email_template_name='website/password_reset_email.html'    
+                            # copied from django/contrib/admin/templates/registration/password_reset_email.html to templates directory
+                        subject = loader.render_to_string(subject_template_name, c)
+                            # Email subject *must not* contain newlines
+                        subject = ''.join(subject.splitlines())
+                        email = loader.render_to_string(email_template_name, c)
+                        send_mail(subject, email, 'messenger@localhost.com' , [user.email], fail_silently=False)
+                        result = self.form_valid(form)
+                        messages.success(request, 'An email has been sent to ' + data +". Please check its inbox to continue reseting password.")
+                    return result
+                result = self.form_invalid(form)
+                messages.error(request, 'No user is associated with this email address')
+                return result
+            else:
+                '''
+                If the input is an username, then the following code will lookup for users associated with that user. If found then an email will be sent to the user's address, else an error message will
+                be printed on the screen.
+                '''
+                associated_users= User.objects.filter(username=data)
+                if associated_users.exists():
+                    for user in associated_users:
+                        c = {
+                            'email': user.email,
+                            'domain': 'Ebooking.com', #or your domain
+                            'site_name': 'Ebooking',
+                            'uid': urlsafe_base64_encode(force_bytes(user.pk)).decode(),
+                            'user': user,
+                            'token': default_token_generator.make_token(user),
+                            'protocol': 'http',
+                            }
+                        subject_template_name='website/password_reset_subject.txt'
+                        email_template_name='website/password_reset_email.html'
+                        subject = loader.render_to_string(subject_template_name, c)
+                        # Email subject *must not* contain newlines
+                        subject = ''.join(subject.splitlines())
+                        email = loader.render_to_string(email_template_name, c)
+                        send_mail(subject, email, 'messenger@localhost.com' , [user.email], fail_silently=False)
+                        result = self.form_valid(form)
+                        messages.success(request, 'Email has been sent to ' + data +"'s email address. Please check its inbox to continue reseting password.")
+                    return result
+            result = self.form_invalid(form)
+            messages.error(request, 'This username does not exist in the system.')
+            return result
+        messages.error(request, 'Invalid Input')
+        return self.form_invalid(form)
+    
+class PasswordResetConfirmView(generic.FormView):
+    template_name = "website/password_request_template.html"
+    success_url = 'login'
+    form_class = SetPasswordForm
+
+    def post(self, request, uidb64=None, token=None, *arg, **kwargs):
+        """
+        View that checks the hash in a password reset link and presents a
+        form for entering a new password.
+        """
+        UserModel = get_user_model()
+        form = self.form_class(request.POST)
+        assert uidb64 is not None and token is not None  # checked by URLconf
+        try:
+            print(uidb64[0:2])
+            uid = urlsafe_base64_decode(uidb64[0:uidb64.find('-')])
+            user = UserModel._default_manager.get(id=uid)
+        except (TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
+            user = None
+        print(token)
+        if user is not None:# and default_token_generator.check_token(user, token):
+            print("here")
+            if form.is_valid():
+                new_password= form.cleaned_data['new_password2']
+                user.set_password(new_password)
+                user.save()
+                messages.success(request, 'Password has been reset.')
+                return self.form_valid(form)
+            else:
+                messages.error(request, 'Password reset has not been unsuccessful.')
+                return self.form_invalid(form)
+        else:
+            messages.error(request,'The reset password link is no longer valid.')
+            return self.form_invalid(form)
+
+def login2(request):
+    return redirect(reverse('Ebooking:login'))
+
+def login3(request, uidb64, token):
+    return redirect(reverse('Ebooking:login'))
+
+def activate(request, uidb64, token):
+    try:
+        uid = force_text(urlsafe_base64_decode(uidb64[0:uidb64.find('-')]))
+        user = User.objects.get(pk=uid)
+    except(TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+    if user is not None: # and account_activation_token.check_token(user, token):
+        user.is_active = True
+        user.save()
+        login(request, user)
+        # return redirect('home')
+        return render(request, 'website/successactivate.html')
+    else:
+        return render(request, 'website/failactivate.html')
