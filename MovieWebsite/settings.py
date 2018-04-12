@@ -127,8 +127,10 @@ EMAIL_PORT = 1025
 '''
 EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = 'EbookingMovies@gmail.com'
-EMAIL_HOST_PASSWORD = 'Ebooking.com'
+#EMAIL_HOST_USER = 'EbookingMovies@gmail.com'
+EMAIL_HOST_USER = 'MovieWebsite4050@gmail.com'
+EMAIL_HOST_PASSWORD = 'CSCI4050'
+#EMAIL_HOST_PASSWORD = 'EmanSaleh'
 EMAIL_PORT = 587
 
 try:

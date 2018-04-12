@@ -318,14 +318,12 @@ class PasswordResetConfirmView(generic.FormView):
         form = self.form_class(request.POST)
         assert uidb64 is not None and token is not None  # checked by URLconf
         try:
-            print(uidb64[0:2])
             uid = urlsafe_base64_decode(uidb64[0:uidb64.find('-')])
             user = UserModel._default_manager.get(id=uid)
         except (TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
             user = None
         print(token)
         if user is not None:# and default_token_generator.check_token(user, token):
-            print("here")
             if form.is_valid():
                 new_password= form.cleaned_data['new_password2']
                 user.set_password(new_password)
